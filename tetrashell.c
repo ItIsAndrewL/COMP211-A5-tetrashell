@@ -1,7 +1,4 @@
-// I, Andrew Lockard (730485848), pledge that I have neither given nor received
-// unauthorized aid on this assignment.
-
-// Collaborators/teammates: none
+// Collaborators/teammates: Andrew Lockard, Benjamin Eldridge
 
 // INCLUDES
 #include <stdio.h>
