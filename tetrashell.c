@@ -48,7 +48,7 @@ int main(int argc, char **argv) {
       "░     ░ ░  ░   ░      ░▒ ░ ▒░  ▒   ▒▒ ░░ ░▒  ░ ░ ▒ ░▒░ ░ ░ ░  ░░ ░ ▒  "
       "░░ ░ ▒  ░\n  ░         ░    ░        ░░   ░   ░   ▒   ░  ░  ░   ░  ░░ ░ "
       "  ░     ░ ░     ░ ░   \n            ░  ░           ░           ░  ░     "
-      " ░   ░  ░  ░   ░  ░    ░  ░    ░  ░\n\033[0m The ultime destructive Tetris"
+      " ░   ░  ░  ░   ░  ░    ░  ░    ░  ░\n\n\033[0mThe ultime destructive Tetris"
 	  " utility tool of DOOM!!\n");
 	// Prompt for path to quicksave
 
@@ -60,6 +60,7 @@ int main(int argc, char **argv) {
 	do {
 		if (current_line != NULL) {
 			// Else if ladder for commands
+			first_word = getFirstWord(current_line);
 		}
 		printf("tetrashell> ");
 	} while ((num_read = getline(&current_line, &n, stdin)) != -1 
@@ -69,6 +70,7 @@ int main(int argc, char **argv) {
 // HELPER FUNCTIONS
 char* getFirstWord(char* input) {
 	char delim = ' ';
+	// May want to add newline removal here (if it exists)
 	return strsep(&input, &delim);
 }
 
