@@ -54,8 +54,8 @@ int main(int argc, char **argv) {
       "░     ░ ░  ░   ░      ░▒ ░ ▒░  ▒   ▒▒ ░░ ░▒  ░ ░ ▒ ░▒░ ░ ░ ░  ░░ ░ ▒  "
       "░░ ░ ▒  ░\n  ░         ░    ░        ░░   ░   ░   ▒   ░  ░  ░   ░  ░░ ░ "
       "  ░     ░ ░     ░ ░   \n            ░  ░           ░           ░  ░     "
-      " ░   ░  ░  ░   ░  ░    ░  ░    ░  ░\n\n\033[0mThe ultimate destructive Tetris"
-	  " utility tool of DOOM!!\n");
+      " ░   ░  ░  ░   ░  ░    ░  ░    ░  ░\n\n\033[0mThe ultimate destructive "
+	  	"Tetris utility tool of DOOM!!\n");
 	// Prompt for path to quicksave
 	int fd;
 	char *pathname = NULL;
@@ -95,6 +95,14 @@ int main(int argc, char **argv) {
 		printf("tetrashell> ");
 	} while ((num_read = getline(&current_line, &n, stdin)) != -1 
 							&& strcmp("exit\n", current_line) != 0);
+	if (num_read == -1) {
+		return EXIT_FAILURE;
+	}
+	else {
+		free(current_line);
+		free(pathname);
+		return EXIT_SUCCESS;
+	}
 }
 
 // HELPER FUNCTIONS
