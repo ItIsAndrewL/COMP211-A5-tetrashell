@@ -7,6 +7,8 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <error.h>
+#include <errno.h>
 
 #include "tetris.h"
 
@@ -61,24 +63,25 @@ int main(int argc, char **argv) {
 	size_t init_pathname_n;
 	printf("Enter the path to the Tetris quicksave you wish to begin hacking: ");
 	if ((pathname_length = getline(&pathname, &init_pathname_n, stdin)) == -1) {
-		// Error msg
+		error(EXIT_FAILURE, errno, "getline failure"); 
 		return EXIT_FAILURE;
 	}
-	// Probably don't need the if but what if someone finds a way to have EOF in stdin (idk??)
+	// Someone could redirect a file into stdin that ends with EOF, so testing for
+	// newline isn't entirely unnecessary
 	if (pathname[pathname_length - 1] == '\n') {
 		pathname[pathname_length - 1] = '\0';
 		pathname_length--;
 	}
 	
-	if ((fd = open(pathname, O_RDONLY)) == 0) {
-		// Error msg
+	if ((fd = open(pathname, O_RDWR)) == 0) {
+		error(EXIT_FAILURE, errno, "open failure");
 		return EXIT_FAILURE;
 	}
 
 	printf("You have entered %s as your file\n", pathname);
 
 	if ((game = mmap(0, sizeof(TetrisGameState), PROT_READ, MAP_PRIVATE, fd, 0)) == MAP_FAILED) {
-		// Error msg
+		error(EXIT_FAILURE, errno, "mmap failure");
 		return EXIT_FAILURE;
 	}
 
