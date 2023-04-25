@@ -2,15 +2,20 @@
 
 // INCLUDES
 #include <stdio.h>
+#include <string.h>
 
 #include "tetris.h"
 
 // FORWARD DECLARATIONS
+char* getFirstWord(char*);
+
+// GLOABLS
+TetrisGameState game;
 
 // MAIN
 int main(int argc, char **argv) {
   // Print intro message
-  printf(
+  printf("Welcome to..\n\n"
       "\033[31m▄▄▄█████\033[38;5;160m▓▓\033[31m█████▄▄▄█████\033[38;5;160m▓ "
       "\033[31m██▀███   ▄▄▄        ██████  ██\033[38;5;160m░ \033[31m██ "
       "\033[38;5;160m▓\033[31m█████  ██\033[38;5;160m▓     "
@@ -43,8 +48,28 @@ int main(int argc, char **argv) {
       "░     ░ ░  ░   ░      ░▒ ░ ▒░  ▒   ▒▒ ░░ ░▒  ░ ░ ▒ ░▒░ ░ ░ ░  ░░ ░ ▒  "
       "░░ ░ ▒  ░\n  ░         ░    ░        ░░   ░   ░   ▒   ░  ░  ░   ░  ░░ ░ "
       "  ░     ░ ░     ░ ░   \n            ░  ░           ░           ░  ░     "
-      " ░   ░  ░  ░   ░  ░    ░  ░    ░  ░");
-			
+      " ░   ░  ░  ░   ░  ░    ░  ░    ░  ░\n\033[0m The ultime destructive Tetris"
+	  " utility tool of DOOM!!\n");
+	// Prompt for path to quicksave
+
+  // Basic Promt & Exit
+	char *current_line = NULL;
+	size_t n = 0;
+	ssize_t num_read;
+	char *first_word;
+	do {
+		if (current_line != NULL) {
+			// Else if ladder for commands
+		}
+		printf("tetrashell> ");
+	} while ((num_read = getline(&current_line, &n, stdin)) != -1 
+							&& strcmp("exit\n", current_line) != 0);
 }
 
 // HELPER FUNCTIONS
+char* getFirstWord(char* input) {
+	char delim = ' ';
+	return strsep(&input, &delim);
+}
+
+
