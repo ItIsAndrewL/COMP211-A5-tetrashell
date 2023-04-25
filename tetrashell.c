@@ -9,6 +9,8 @@
 #include <stdlib.h>
 #include <error.h>
 #include <errno.h>
+#include <sys/types.h>
+#include <pwd.h>
 
 #include "tetris.h"
 
@@ -65,6 +67,7 @@ int main(int argc, char **argv) {
 	if ((pathname_length = getline(&pathname, &init_pathname_n, stdin)) == -1) {
 		error(EXIT_FAILURE, errno, "getline failure"); 
 	}
+
 	// Someone could redirect a file into stdin that ends with EOF, so testing for
 	// newline isn't entirely unnecessary
 	if (pathname[pathname_length - 1] == '\n') {
@@ -83,9 +86,11 @@ int main(int argc, char **argv) {
 	}
 
 	// Get info for improved prompt
-	char *login_name = getlogin();
-	if (login_name == NULL) {
-		error(EXIT_FAILURE, errno, "getlogin failure");
+	// man page for getpwuid says to set errno to 0 before the call to be able to check it after
+	errno = 0;
+	struct passwd *login_info = getpwuid(getuid());
+	if (login_info == NULL) {
+		error(EXIT_FAILURE, errno, "getpwuid failure");
 	}
 
   // Basic Prompt & Exit
@@ -93,12 +98,13 @@ int main(int argc, char **argv) {
 	size_t n = 0;
 	ssize_t num_read;
 	char *first_word;
+
 	do {
 		if (current_line != NULL) {
 			// Else if ladder for commands
 			first_word = getFirstWord(current_line);
 		}
-		printf("%s@\033[31mtetrashell\033[0m[%s][%d][%d]> ", login_name, pathname, game->score, game->lines);
+		printf("\033[38;2;123;175;212m%s\033[0m@\033[31mtetrashell\033[0m[%s][%d/%d]> ", login_info->pw_name, pathname, game->score, game->lines);
 	} while ((num_read = getline(&current_line, &n, stdin)) != -1 
 							&& strcmp("exit\n", current_line) != 0);
 	if (num_read == -1) {
