@@ -3,6 +3,10 @@
 // INCLUDES
 #include <stdio.h>
 #include <string.h>
+#include <sys/mman.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <stdlib.h>
 
 #include "tetris.h"
 
@@ -10,7 +14,7 @@
 char* getFirstWord(char*);
 
 // GLOABLS
-TetrisGameState game;
+TetrisGameState* game;
 
 // MAIN
 int main(int argc, char **argv) {
@@ -48,11 +52,37 @@ int main(int argc, char **argv) {
       "░     ░ ░  ░   ░      ░▒ ░ ▒░  ▒   ▒▒ ░░ ░▒  ░ ░ ▒ ░▒░ ░ ░ ░  ░░ ░ ▒  "
       "░░ ░ ▒  ░\n  ░         ░    ░        ░░   ░   ░   ▒   ░  ░  ░   ░  ░░ ░ "
       "  ░     ░ ░     ░ ░   \n            ░  ░           ░           ░  ░     "
-      " ░   ░  ░  ░   ░  ░    ░  ░    ░  ░\n\n\033[0mThe ultime destructive Tetris"
+      " ░   ░  ░  ░   ░  ░    ░  ░    ░  ░\n\n\033[0mThe ultimate destructive Tetris"
 	  " utility tool of DOOM!!\n");
 	// Prompt for path to quicksave
+	int fd;
+	char *pathname = NULL;
+	ssize_t pathname_length;
+	size_t init_pathname_n;
+	printf("Enter the path to the Tetris quicksave you wish to begin hacking: ");
+	if ((pathname_length = getline(&pathname, &init_pathname_n, stdin)) == -1) {
+		// Error msg
+		return EXIT_FAILURE;
+	}
+	// Probably don't need the if but what if someone finds a way to have EOF in stdin (idk??)
+	if (pathname[pathname_length - 1] == '\n') {
+		pathname[pathname_length - 1] = '\0';
+		pathname_length--;
+	}
+	
+	if ((fd = open(pathname, O_RDONLY)) == 0) {
+		// Error msg
+		return EXIT_FAILURE;
+	}
 
-  // Basic Promt & Exit
+	printf("You have entered %s as your file\n", pathname);
+
+	if ((game = mmap(0, sizeof(TetrisGameState), PROT_READ, MAP_PRIVATE, fd, 0)) == MAP_FAILED) {
+		// Error msg
+		return EXIT_FAILURE;
+	}
+
+  // Basic Prompt & Exit
 	char *current_line = NULL;
 	size_t n = 0;
 	ssize_t num_read;
