@@ -82,6 +82,12 @@ int main(int argc, char **argv) {
 		error(EXIT_FAILURE, errno, "mmap failure");
 	}
 
+	// Get info for improved prompt
+	char *login_name = getlogin();
+	if (login_name == NULL) {
+		error(EXIT_FAILURE, errno, "getlogin failure");
+	}
+
   // Basic Prompt & Exit
 	char *current_line = NULL;
 	size_t n = 0;
@@ -92,7 +98,7 @@ int main(int argc, char **argv) {
 			// Else if ladder for commands
 			first_word = getFirstWord(current_line);
 		}
-		printf("tetrashell> ");
+		printf("%s@\033[31mtetrashell\033[0m[%s][%d][%d]> ", login_name, pathname, game->score, game->lines);
 	} while ((num_read = getline(&current_line, &n, stdin)) != -1 
 							&& strcmp("exit\n", current_line) != 0);
 	if (num_read == -1) {
