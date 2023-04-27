@@ -159,7 +159,7 @@ int main(int argc, char **argv) {
 				if (wait(NULL) == -1) {
 					error(EXIT_FAILURE, errno, "wait failure");
 				} // Wondering if I should add a call to WIFEXITED here?
-			} else if (srcmp("modify", line_tokenized[0]) == 0) {
+			} else if (strcmp("modify", line_tokenized[0]) == 0) {
 				pid_t fork_id = fork();
 				if (fork_id == -1) {
 					error(EXIT_FAILURE, errno, "fork failure");
