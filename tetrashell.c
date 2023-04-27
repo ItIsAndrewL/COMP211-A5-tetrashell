@@ -149,7 +149,7 @@ int main(int argc, char **argv) {
 					error(EXIT_FAILURE, errno, "fork failure");
 				} else if (fork_id == 0) {
 					// In child process
-					char *const new_args[2] = {line_tokenized[0] , pathname};
+					char *const new_args[3] = {line_tokenized[0], pathname, NULL};
 					if (execv("check", new_args) == -1) {
 						error(EXIT_FAILURE, errno, "execv failure");
 					}
@@ -159,6 +159,19 @@ int main(int argc, char **argv) {
 				if (wait(NULL) == -1) {
 					error(EXIT_FAILURE, errno, "wait failure");
 				} // Wondering if I should add a call to WIFEXITED here?
+			} else if (srcmp("modify", line_tokenized[0]) == 0) {
+				pid_t fork_id = fork();
+				if (fork_id == -1) {
+					error(EXIT_FAILURE, errno, "fork failure");
+				} else if (fork_id == 0) {
+					// In child process
+					char *const new_args[3] = {line_tokenized[0], pathname,     NULL};
+					exit(0);
+				}
+				// In parent process
+				if (wait(NULL) == -1) {
+					error(EXIT_FAILURE, errno, "wait failure");
+				}
 			}
 		}
 		// Need to abbreviate pathname, maybe use tokenizing? Some string 
