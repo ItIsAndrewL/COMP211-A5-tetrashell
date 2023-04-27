@@ -125,6 +125,7 @@ int main(int argc, char **argv) {
 				} // Wondering if I should add a call to WIFEXITED here?
 				
 			}
+// 			free(line_tokenized);
 		}
 		// Need to abbreviate pathname, maybe use tokenizing?
 		printf("\033[38;2;123;175;212m%s\033[0m@\033[31mtetrashell\033[0m[%s][%d/%d]> ", login_info->pw_name, pathname, game->score, game->lines);
@@ -149,11 +150,22 @@ char *getFirstWord(char *input) {
 }
 
 char **tokenizeEntry(char *input, const char *delim, ssize_t *length) {
-	char **token_array = (char **) malloc(sizeof(char) * (size_t) *length);
+// 	char **token_array = (char **) malloc((sizeof(char) * (size_t) *length) * 100000);
+	static char *token_array[40];
+	if (token_array == NULL) {
+		error(EXIT_FAILURE, errno, "malloc failure");
+	}
 	if (input[(*length) - 1] == '\n') {
 		input[(*length) - 1] = '\0';
 		(*length)--;
 	}
+// 	char *buf = strtok(input, delim);
+// 	int i = 0;
+// 	while (buf != NULL) {
+// 		token_array[i++] = buf;
+// 		buf = NULL;
+// 		buf = strtok(NULL, delim);
+// 	}
 	token_array[0] = strtok(input, delim);
 	int i = 1;
 	while ((token_array[i] = strtok(NULL, delim)) != NULL) {
