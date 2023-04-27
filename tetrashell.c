@@ -149,7 +149,7 @@ char *getFirstWord(char *input) {
 }
 
 char **tokenizeEntry(char *input, const char *delim, ssize_t *length) {
-	static char *token_array[30]; // TODO: Fix this array size
+	char **token_array = (char **) malloc(sizeof(char) * (size_t) *length);
 	if (input[(*length) - 1] == '\n') {
 		input[(*length) - 1] = '\0';
 		(*length)--;
