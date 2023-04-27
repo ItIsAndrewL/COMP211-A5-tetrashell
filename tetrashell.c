@@ -17,6 +17,7 @@
 
 // FORWARD DECLARATIONS
 char *getFirstWord(char* input);
+void openRecover(char**);
 char **tokenizeEntry(char *input, char const *delim, ssize_t *length);
 
 // GLOABLS
@@ -109,26 +110,14 @@ int main(int argc, char **argv) {
 			line_tokenized = tokenizeEntry(current_line, delim, &num_read);
 
 			if (strcmp("recover", line_tokenized[0]) == 0) {
-				pid_t fork_id = fork();
-				if (fork_id == -1) {
-					error(EXIT_FAILURE, errno, "fork failure");
-				} else if (fork_id == 0) {
-					// In child process
-					if (execv("recover", line_tokenized) == -1) {
-						error(EXIT_FAILURE, errno, "execv failure");
-					}
-					exit(0);
-				}
-				// In parent process
-				if (wait(NULL) == -1) {
-					error(EXIT_FAILURE, errno, "wait failure");
-				} // Wondering if I should add a call to WIFEXITED here?
-				
+				openRecover(line_tokenized);
 			}
 // 			free(line_tokenized);
 		}
 		// Need to abbreviate pathname, maybe use tokenizing?
-		printf("\033[38;2;123;175;212m%s\033[0m@\033[31mtetrashell\033[0m[%s][%d/%d]> ", login_info->pw_name, pathname, game->score, game->lines);
+		printf("\033[38;2;123;175;212m%s\033[0m@\033[31mtetrashell"
+						"\033[0m[%s][%d/%d]> ", login_info->pw_name,
+						pathname, game->score, game->lines);
 	} while ((num_read = getline(&current_line, &n, stdin)) != -1 
 							&& strcmp("exit\n", current_line) != 0);
 
@@ -149,9 +138,27 @@ char *getFirstWord(char *input) {
 	return strsep(&input, &delim);
 }
 
+void openRecover(char **line_tokenized) {
+	pid_t fork_id = fork();
+	if (fork_id == -1) {
+		error(EXIT_FAILURE, errno, "fork failure");
+	} else if (fork_id == 0) {
+		// In child process
+		if (execv("recover", line_tokenized) == -1) {
+			error(EXIT_FAILURE, errno, "execv failure");
+		}
+		exit(0);
+	} else {
+		// In parent process
+		if (wait(NULL) == -1) {
+			error(EXIT_FAILURE, errno, "wait failure");
+		} // Wondering if I should add a call to WIFEXITED here?
+	}
+}
+
 char **tokenizeEntry(char *input, const char *delim, ssize_t *length) {
 // 	char **token_array = (char **) malloc((sizeof(char) * (size_t) *length) * 100000);
-	static char *token_array[40];
+	static char *token_array[40]; // TODO: Remove static variable, can cause threading problems
 	if (token_array == NULL) {
 		error(EXIT_FAILURE, errno, "malloc failure");
 	}
