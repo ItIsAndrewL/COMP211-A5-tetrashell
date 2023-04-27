@@ -19,7 +19,7 @@
 char *getFirstWord(char* input);
 char **tokenizeEntry(char *input, char const *delim, ssize_t *length);
 
-// GLOABLS
+// GLOBALS
 TetrisGameState* game;
 
 // MAIN
@@ -74,7 +74,6 @@ int main(int argc, char **argv) {
 	// newline isn't entirely unnecessary
 	if (pathname[pathname_length - 1] == '\n') {
 		pathname[pathname_length - 1] = '\0';
-		pathname_length--;
 	}
 	
 	if ((fd = open(pathname, O_RDWR)) == 0) {
@@ -104,10 +103,30 @@ int main(int argc, char **argv) {
 	char *first_word;
 
 	do {
-		if (current_line != NULL) {
-			// Else if ladder for commands
-			line_tokenized = tokenizeEntry(current_line, delim, &num_read);
+		// Current_line will be null in the case of just an EOF character being put
+		// into stdin, the first strcmp checks for just hitting enter into the shell
+		// and the strspn call checks for any number of spaces before hitting enter
+		// which would become null after strtok
+		if (current_line != NULL && strcmp("\n", current_line) != 0 && strspn(current_line, delim) != (num_read - 1)) {
+			int arg_count = 1;
+			for (int i = 0; current_line[i] != '\0'; i++) {
+				if (current_line[i] == ' ') {
+					arg_count++;
+				}
+			}
+			char *line_tokenized[arg_count];
+			if (current_line[num_read - 1] == '\n') {
+				current_line[num_read - 1] = '\0';
+				num_read--;
+			}
+			
+			line_tokenized[0] = strtok(current_line, delim);
+			int i = 1;
+			while ((line_tokenized[i] = strtok(NULL, delim)) != NULL) {
+				i++;
+			}
 
+			// Else if ladder for commands
 			if (strcmp("recover", line_tokenized[0]) == 0) {
 				pid_t fork_id = fork();
 				if (fork_id == -1) {
@@ -124,10 +143,26 @@ int main(int argc, char **argv) {
 					error(EXIT_FAILURE, errno, "wait failure");
 				} // Wondering if I should add a call to WIFEXITED here?
 				
+			} else if (strcmp("check", line_tokenized[0]) == 0) {
+				pid_t fork_id = fork();
+				if (fork_id == -1) {
+					error(EXIT_FAILURE, errno, "fork failure");
+				} else if (fork_id == 0) {
+					// In child process
+					char *const new_args[2] = {line_tokenized[0] , pathname};
+					if (execv("check", new_args) == -1) {
+						error(EXIT_FAILURE, errno, "execv failure");
+					}
+					exit(0);
+				}
+				// In parent process	
+				if (wait(NULL) == -1) {
+					error(EXIT_FAILURE, errno, "wait failure");
+				} // Wondering if I should add a call to WIFEXITED here?
 			}
-// 			free(line_tokenized);
 		}
-		// Need to abbreviate pathname, maybe use tokenizing?
+		// Need to abbreviate pathname, maybe use tokenizing? Some string 
+		// manipulation method would also probably work
 		printf("\033[38;2;123;175;212m%s\033[0m@\033[31mtetrashell\033[0m[%s][%d/%d]> ", login_info->pw_name, pathname, game->score, game->lines);
 	} while ((num_read = getline(&current_line, &n, stdin)) != -1 
 							&& strcmp("exit\n", current_line) != 0);
@@ -152,9 +187,9 @@ char *getFirstWord(char *input) {
 char **tokenizeEntry(char *input, const char *delim, ssize_t *length) {
 // 	char **token_array = (char **) malloc((sizeof(char) * (size_t) *length) * 100000);
 	static char *token_array[40];
-	if (token_array == NULL) {
-		error(EXIT_FAILURE, errno, "malloc failure");
-	}
+// 	if (token_array == NULL) {
+// 		error(EXIT_FAILURE, errno, "malloc failure");
+// 	}
 	if (input[(*length) - 1] == '\n') {
 		input[(*length) - 1] = '\0';
 		(*length)--;
