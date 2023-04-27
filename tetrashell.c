@@ -19,6 +19,7 @@
 int countArgs(char*);
 void runRecover(char**);
 void runCheck(char**, char*);
+void runModify(char**, char*);
 
 // GLOBALS
 
@@ -128,7 +129,7 @@ int main(int argc, char **argv) {
 			} else if (strcmp("check", line_tokenized[0]) == 0) {
 				runCheck(line_tokenized, pathname);
 			} else if (strcmp("modify", line_tokenized[0]) == 0) {
-				
+				runModify(line_tokenized, pathname);
 			}
 		}
 		// Need to abbreviate pathname, maybe use tokenizing? Some string 
@@ -193,7 +194,7 @@ void runCheck(char **line_tokenized, char* pathname) {
 	} // Wondering if I should add a call to WIFEXITED here?
 }
 
-void runModify(char **line_tokenized, char* pathname) {
+void runModify(char **line_tokenized, char *pathname) {
 	pid_t fork_id = fork();
 	if (fork_id == -1) {
 		error(EXIT_FAILURE, errno, "fork failure");
