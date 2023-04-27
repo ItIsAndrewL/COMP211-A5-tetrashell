@@ -11,11 +11,13 @@
 #include <errno.h>
 #include <sys/types.h>
 #include <pwd.h>
+#include <sys/wait.h>
 
 #include "tetris.h"
 
 // FORWARD DECLARATIONS
-char* getFirstWord(char*);
+char *getFirstWord(char* input);
+char **tokenizeEntry(char *input, char const *delim, ssize_t *length);
 
 // GLOABLS
 TetrisGameState* game;
@@ -95,6 +97,8 @@ int main(int argc, char **argv) {
 
   // Basic Prompt & Exit
 	char *current_line = NULL;
+	char **line_tokenized;
+	const char *delim = " ";
 	size_t n = 0;
 	ssize_t num_read;
 	char *first_word;
@@ -102,26 +106,60 @@ int main(int argc, char **argv) {
 	do {
 		if (current_line != NULL) {
 			// Else if ladder for commands
-			first_word = getFirstWord(current_line);
+			line_tokenized = tokenizeEntry(current_line, delim, &num_read);
+
+			if (strcmp("recover", line_tokenized[0]) == 0) {
+				pid_t fork_id = fork();
+				if (fork_id == -1) {
+					error(EXIT_FAILURE, errno, "fork failure");
+				} else if (fork_id == 0) {
+					// In child process
+					if (execv("recover", line_tokenized) == -1) {
+						error(EXIT_FAILURE, errno, "execv failure");
+					}
+					exit(0);
+				}
+				// In parent process
+				if (wait(NULL) == -1) {
+					error(EXIT_FAILURE, errno, "wait failure");
+				} // Wondering if I should add a call to WIFEXITED here?
+				
+			}
 		}
+		// Need to abbreviate pathname, maybe use tokenizing?
 		printf("\033[38;2;123;175;212m%s\033[0m@\033[31mtetrashell\033[0m[%s][%d/%d]> ", login_info->pw_name, pathname, game->score, game->lines);
 	} while ((num_read = getline(&current_line, &n, stdin)) != -1 
 							&& strcmp("exit\n", current_line) != 0);
+
+	free(current_line);
+	free(pathname);
+
 	if (num_read == -1) {
-		return EXIT_FAILURE;
-	}
-	else {
-		free(current_line);
-		free(pathname);
+		error(EXIT_FAILURE, errno, "getline failure");
+	} else {
 		return EXIT_SUCCESS;
 	}
 }
 
 // HELPER FUNCTIONS
-char* getFirstWord(char* input) {
+char *getFirstWord(char *input) {
 	char delim = ' ';
 	// May want to add newline removal here (if it exists)
 	return strsep(&input, &delim);
+}
+
+char **tokenizeEntry(char *input, const char *delim, ssize_t *length) {
+	char **token_array;
+	if (input[(*length) - 1] == '\n') {
+		input[(*length) - 1] = '\0';
+		(*length)--;
+	}
+	token_array[0] = strtok(input, delim);
+	int i = 1;
+	while ((token_array[i] = strtok(NULL, delim)) != NULL) {
+		i++;
+	}
+	return token_array;
 }
 
 
