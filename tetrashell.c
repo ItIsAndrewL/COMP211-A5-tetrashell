@@ -201,6 +201,9 @@ void runModify(char **line_tokenized, char* pathname) {
 		// In child process
 		char* const new_args[5] = {line_tokenized[0], line_tokenized[1],
 				line_tokenized[2], pathname, NULL};
+		if (execv("modify", new_args) == -1) {
+			error(EXIT_FAILURE, errno, "execv failure");
+		}
 		exit(0);
 	}
 	// In parent process
