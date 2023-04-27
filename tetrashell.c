@@ -16,11 +16,11 @@
 #include "tetris.h"
 
 // FORWARD DECLARATIONS
-char *getFirstWord(char* input);
-char **tokenizeEntry(char *input, char const *delim, ssize_t *length);
+int countArgs(char*);
+void runRecover(char**);
+void runCheck(char**, char*);
 
 // GLOBALS
-TetrisGameState* game;
 
 // MAIN
 int main(int argc, char **argv) {
@@ -60,9 +60,13 @@ int main(int argc, char **argv) {
       "  ░     ░ ░     ░ ░   \n            ░  ░           ░           ░  ░     "
       " ░   ░  ░  ░   ░  ░    ░  ░    ░  ░\n\n\033[0mThe ultimate destructive "
 	  	"Tetris utility tool of DOOM!!\n");
+
 	// Prompt for path to quicksave
 	int fd;
+
 	char *pathname = NULL;
+	TetrisGameState* game;
+
 	ssize_t pathname_length;
 	size_t init_pathname_n;
 	printf("Enter the path to the Tetris quicksave you wish to begin hacking: ");
@@ -70,8 +74,7 @@ int main(int argc, char **argv) {
 		error(EXIT_FAILURE, errno, "getline failure"); 
 	}
 
-	// Someone could redirect a file into stdin that ends with EOF, so testing for
-	// newline isn't entirely unnecessary
+	// Testing for newline at end
 	if (pathname[pathname_length - 1] == '\n') {
 		pathname[pathname_length - 1] = '\0';
 	}
@@ -82,19 +85,19 @@ int main(int argc, char **argv) {
 
 	printf("You have entered %s as your file\n", pathname);
 
-	if ((game = mmap(0, sizeof(TetrisGameState), PROT_READ, MAP_PRIVATE, fd, 0)) == MAP_FAILED) {
+	if ((game = mmap(0, sizeof(TetrisGameState),
+					PROT_READ, MAP_PRIVATE, fd, 0)) == MAP_FAILED) {
 		error(EXIT_FAILURE, errno, "mmap failure");
 	}
 
 	// Get info for improved prompt
-	// man page for getpwuid says to set errno to 0 before the call to be able to check it after
 	errno = 0;
 	struct passwd *login_info = getpwuid(getuid());
 	if (login_info == NULL) {
 		error(EXIT_FAILURE, errno, "getpwuid failure");
 	}
 
-  // Basic Prompt & Exit
+	// Basic Prompt & Exit
 	char *current_line = NULL;
 	char **line_tokenized;
 	const char *delim = " ";
@@ -103,23 +106,16 @@ int main(int argc, char **argv) {
 	char *first_word;
 
 	do {
-		// Current_line will be null in the case of just an EOF character being put
-		// into stdin, the first strcmp checks for just hitting enter into the shell
-		// and the strspn call checks for any number of spaces before hitting enter
-		// which would become null after strtok
-		if (current_line != NULL && strcmp("\n", current_line) != 0 && strspn(current_line, delim) != (num_read - 1)) {
-			int arg_count = 1;
-			for (int i = 0; current_line[i] != '\0'; i++) {
-				if (current_line[i] == ' ') {
-					arg_count++;
-				}
-			}
-			char *line_tokenized[arg_count];
+		// Makes sure logic does not run on empty inputs (spaces, new lines, EOF)
+		if (current_line != NULL && strcmp("\n", current_line) != 0
+				&& strspn(current_line, delim) != (num_read - 1)) {
+
+			char *line_tokenized[countArgs(current_line)];
+			// Remove new line character
 			if (current_line[num_read - 1] == '\n') {
 				current_line[num_read - 1] = '\0';
-				num_read--;
 			}
-			
+
 			line_tokenized[0] = strtok(current_line, delim);
 			int i = 1;
 			while ((line_tokenized[i] = strtok(NULL, delim)) != NULL) {
@@ -128,50 +124,11 @@ int main(int argc, char **argv) {
 
 			// Else if ladder for commands
 			if (strcmp("recover", line_tokenized[0]) == 0) {
-				pid_t fork_id = fork();
-				if (fork_id == -1) {
-					error(EXIT_FAILURE, errno, "fork failure");
-				} else if (fork_id == 0) {
-					// In child process
-					if (execv("recover", line_tokenized) == -1) {
-						error(EXIT_FAILURE, errno, "execv failure");
-					}
-					exit(0);
-				}
-				// In parent process
-				if (wait(NULL) == -1) {
-					error(EXIT_FAILURE, errno, "wait failure");
-				} // Wondering if I should add a call to WIFEXITED here?
-				
+				runRecover(line_tokenized);
 			} else if (strcmp("check", line_tokenized[0]) == 0) {
-				pid_t fork_id = fork();
-				if (fork_id == -1) {
-					error(EXIT_FAILURE, errno, "fork failure");
-				} else if (fork_id == 0) {
-					// In child process
-					char *const new_args[3] = {line_tokenized[0], pathname, NULL};
-					if (execv("check", new_args) == -1) {
-						error(EXIT_FAILURE, errno, "execv failure");
-					}
-					exit(0);
-				}
-				// In parent process	
-				if (wait(NULL) == -1) {
-					error(EXIT_FAILURE, errno, "wait failure");
-				} // Wondering if I should add a call to WIFEXITED here?
+				runCheck(line_tokenized, pathname);
 			} else if (strcmp("modify", line_tokenized[0]) == 0) {
-				pid_t fork_id = fork();
-				if (fork_id == -1) {
-					error(EXIT_FAILURE, errno, "fork failure");
-				} else if (fork_id == 0) {
-					// In child process
-					char *const new_args[3] = {line_tokenized[0], pathname,     NULL};
-					exit(0);
-				}
-				// In parent process
-				if (wait(NULL) == -1) {
-					error(EXIT_FAILURE, errno, "wait failure");
-				}
+				
 			}
 		}
 		// Need to abbreviate pathname, maybe use tokenizing? Some string 
@@ -191,35 +148,63 @@ int main(int argc, char **argv) {
 }
 
 // HELPER FUNCTIONS
-char *getFirstWord(char *input) {
-	char delim = ' ';
-	// May want to add newline removal here (if it exists)
-	return strsep(&input, &delim);
+int countArgs(char *input) {
+	int arg_count = 1;
+	for (int i = 0; input[i] != '\0'; i++) {
+		if (input[i] == ' ') {
+			arg_count++;
+		}
+	}
+	return arg_count;
 }
 
-char **tokenizeEntry(char *input, const char *delim, ssize_t *length) {
-// 	char **token_array = (char **) malloc((sizeof(char) * (size_t) *length) * 100000);
-	static char *token_array[40];
-// 	if (token_array == NULL) {
-// 		error(EXIT_FAILURE, errno, "malloc failure");
-// 	}
-	if (input[(*length) - 1] == '\n') {
-		input[(*length) - 1] = '\0';
-		(*length)--;
+void runRecover(char **line_tokenized) {
+	pid_t fork_id = fork();
+	if (fork_id == -1) {
+		error(EXIT_FAILURE, errno, "fork failure");
+	} else if (fork_id == 0) {
+		// In child process
+		if (execv("recover", line_tokenized) == -1) {
+			error(EXIT_FAILURE, errno, "execv failure");
+		}
+		exit(0);
 	}
-// 	char *buf = strtok(input, delim);
-// 	int i = 0;
-// 	while (buf != NULL) {
-// 		token_array[i++] = buf;
-// 		buf = NULL;
-// 		buf = strtok(NULL, delim);
-// 	}
-	token_array[0] = strtok(input, delim);
-	int i = 1;
-	while ((token_array[i] = strtok(NULL, delim)) != NULL) {
-		i++;
-	}
-	return token_array;
+	// In parent process
+	if (wait(NULL) == -1) {
+		error(EXIT_FAILURE, errno, "wait failure");
+	} // Wondering if I should add a call to WIFEXITED here?
 }
 
+void runCheck(char **line_tokenized, char* pathname) {
+	pid_t fork_id = fork();
+	if (fork_id == -1) {
+		error(EXIT_FAILURE, errno, "fork failure");
+	} else if (fork_id == 0) {
+		// In child process
+		char* const new_args[3] = {line_tokenized[0], pathname, NULL};
+		if (execv("check", new_args) == -1) {
+			error(EXIT_FAILURE, errno, "execv failure");
+		}
+		exit(0);
+	}
+	// In parent process	
+	if (wait(NULL) == -1) {
+		error(EXIT_FAILURE, errno, "wait failure");
+	} // Wondering if I should add a call to WIFEXITED here?
+}
 
+void runModify(char **line_tokenized, char* pathname) {
+	pid_t fork_id = fork();
+	if (fork_id == -1) {
+		error(EXIT_FAILURE, errno, "fork failure");
+	} else if (fork_id == 0) {
+		// In child process
+		char* const new_args[5] = {line_tokenized[0], line_tokenized[1],
+				line_tokenized[2], pathname, NULL};
+		exit(0);
+	}
+	// In parent process
+	if (wait(NULL) == -1) {
+		error(EXIT_FAILURE, errno, "wait failure");
+	}
+}
