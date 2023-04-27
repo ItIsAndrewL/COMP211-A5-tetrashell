@@ -16,9 +16,10 @@
 #include "tetris.h"
 
 // FORWARD DECLARATIONS
-char *getFirstWord(char* input);
+char *getFirstWord(char*);
+int countArgs(char*);
 void openRecover(char**);
-char **tokenizeEntry(char *input, char const *delim, ssize_t *length);
+char **tokenizeEntry(char*, char const*, ssize_t*);
 
 // GLOABLS
 TetrisGameState* game;
@@ -98,7 +99,6 @@ int main(int argc, char **argv) {
 
   // Basic Prompt & Exit
 	char *current_line = NULL;
-	char **line_tokenized;
 	const char *delim = " ";
 	size_t n = 0;
 	ssize_t num_read;
@@ -106,9 +106,15 @@ int main(int argc, char **argv) {
 
 	do {
 		if (current_line != NULL) {
-			// Else if ladder for commands
-			line_tokenized = tokenizeEntry(current_line, delim, &num_read);
+			// Split up input into arguments and words
+			char *line_tokenized[countArgs(current_line)];
+			line_tokenized[0] = strtok(input, delim);
+			int i = 1;
+			while ((line_tokenized[i] = strtok(NULL, delim)) != NULL) {
+				i++;
+			}
 
+			// Else if ladder for commands
 			if (strcmp("recover", line_tokenized[0]) == 0) {
 				openRecover(line_tokenized);
 			}
@@ -138,6 +144,16 @@ char *getFirstWord(char *input) {
 	return strsep(&input, &delim);
 }
 
+int countArgs(char *input) {
+	int num = 0;
+	for (char l = input; *l != '\0'; l++) {
+		if (*l == ' ') {
+			num++;
+		}
+	}
+	return ++num;
+}
+
 void openRecover(char **line_tokenized) {
 	pid_t fork_id = fork();
 	if (fork_id == -1) {
@@ -156,9 +172,13 @@ void openRecover(char **line_tokenized) {
 	}
 }
 
+/*
 char **tokenizeEntry(char *input, const char *delim, ssize_t *length) {
 // 	char **token_array = (char **) malloc((sizeof(char) * (size_t) *length) * 100000);
-	static char *token_array[40]; // TODO: Remove static variable, can cause threading problems
+	// Change input spaces to null terminators, and return pointers to the start
+	int size = countArgs(input);
+	printf("You put: %i args", size);
+	static char *token_array[size];
 	if (token_array == NULL) {
 		error(EXIT_FAILURE, errno, "malloc failure");
 	}
@@ -179,6 +199,6 @@ char **tokenizeEntry(char *input, const char *delim, ssize_t *length) {
 		i++;
 	}
 	return token_array;
-}
+}*/
 
 
