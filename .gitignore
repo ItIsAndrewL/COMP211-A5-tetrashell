@@ -1,4 +1,8 @@
 tetrashell
 save.bin
+rank
+check
+modify
+recover
 /recovered/
 !tetrashell.c
