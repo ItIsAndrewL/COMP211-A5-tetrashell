@@ -20,7 +20,7 @@ int countArgs(char*);
 void runRecover(char**);
 void runCheck(char**, char*);
 void runModify(char**, char*);
-void runRank(char**, char*);
+void runRank(char**, char*, int);
 void runInfo(char*, TetrisGameState*);
 void runSwitch(char*, TetrisGameState**, int*, ssize_t*);
 
@@ -223,7 +223,7 @@ void runModify(char **line_tokenized, char *pathname) {
 	}
 }
 
-void runRank(char **line_tokenized, char *pathname, int argCount) {
+void runRank(char **line_tokenized, char *pathname, int numArgs) {
 	int pipe_in[2];
 	if (pipe(pipe_in) == -1) {
 		error(EXIT_FAILURE, errno, "pipe failure");
@@ -255,7 +255,7 @@ void runRank(char **line_tokenized, char *pathname, int argCount) {
 			error(EXIT_FAILURE, errno, "dup2 failure");
 
 		// Update Args & Quickrank
-		char* const updated_args[5];
+		char* updated_args[5];
 		if (numArgs >= 3) {
 			updated_args[0] = "rank";
 			updated_args[1] = line_tokenized[1];
