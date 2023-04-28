@@ -132,7 +132,7 @@ int main(int argc, char **argv) {
 			} else if (strcmp("modify", line_tokenized[0]) == 0) {
 				runModify(line_tokenized, pathname);
 			} else if (strcmp("rank", line_tokenized[0]) == 0) {
-				runRank(line_tokenized, pathname);
+				runRank(line_tokenized, pathname, i);
 			} else if (strcmp("info", line_tokenized[0]) == 0) {
 				runInfo(pathname, game);
 			} else if (strcmp("switch", line_tokenized[0]) == 0) {
@@ -223,7 +223,7 @@ void runModify(char **line_tokenized, char *pathname) {
 	}
 }
 
-void runRank(char **line_tokenized, char *pathname) {
+void runRank(char **line_tokenized, char *pathname, int argCount) {
 	int pipe_in[2];
 	if (pipe(pipe_in) == -1) {
 		error(EXIT_FAILURE, errno, "pipe failure");
@@ -254,8 +254,28 @@ void runRank(char **line_tokenized, char *pathname) {
 		if (dup2(pipe_in[0], 0) == -1)
 			error(EXIT_FAILURE, errno, "dup2 failure");
 
-		char* const updated_args[5] = {"rank", line_tokenized[1],
-					line_tokenized[2], "uplink", NULL};
+		// Update Args & Quickrank
+		char* const updated_args[5];
+		if (numArgs >= 3) {
+			updated_args[0] = "rank";
+			updated_args[1] = line_tokenized[1];
+			updated_args[2] = line_tokenized[2];
+			updated_args[3] = "uplink";
+			updated_args[4] = NULL;
+		} else if (numArgs == 2) {
+			updated_args[0] = "rank";
+			updated_args[1] = line_tokenized[1];
+			updated_args[2] = "10"; // Defaults to 10 lines
+			updated_args[3] = "uplink";
+			updated_args[4] = NULL;
+		} else {
+			updated_args[0] = "rank";
+			updated_args[1] = "score"; // Deafults to score
+			updated_args[2] = "10"; // Defaults to 10 lines
+			updated_args[3] = "uplink";
+			updated_args[4] = NULL;
+		}
+
 		if (execv("rank", updated_args) == -1)
 			error(EXIT_FAILURE, errno, "execv failure");
 	}
