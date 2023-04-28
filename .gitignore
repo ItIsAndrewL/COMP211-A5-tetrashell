@@ -1,9 +1,9 @@
 tetrashell
-save.bin
-tetris_quicksave.bin
+save*.bin
+tetris_quicksave*.bin
 rank
 check
 modify
-recover/
-recovered
+recover
+recovered/
 !tetrashell.c
