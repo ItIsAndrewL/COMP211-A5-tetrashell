@@ -20,8 +20,7 @@ int countArgs(char*);
 void runRecover(char**);
 void runCheck(char**, char*);
 void runModify(char**, char*);
-
-// GLOBALS
+void runRank(char**, char*);
 
 // MAIN
 int main(int argc, char **argv) {
@@ -130,6 +129,10 @@ int main(int argc, char **argv) {
 				runCheck(line_tokenized, pathname);
 			} else if (strcmp("modify", line_tokenized[0]) == 0) {
 				runModify(line_tokenized, pathname);
+			} else if (strcmp("rank", line_tokenized[0]) == 0) {
+				runRank(line_tokenized, pathname);
+			} else {
+				printf("Command not recognized, try:\nrecover\ncheck\nrank\nmodify");
 			}
 		}
 		// Need to abbreviate pathname, maybe use tokenizing? Some string 
@@ -210,5 +213,43 @@ void runModify(char **line_tokenized, char *pathname) {
 	// In parent process
 	if (wait(NULL) == -1) {
 		error(EXIT_FAILURE, errno, "wait failure");
+	}
+}
+
+void runRank(char **line_tokenized, char *pathname) {
+	int pipe_in[2];
+	if (pipe(pipe_in) == -1) {
+		error(EXIT_FAILURE, errno, "pipe failure");
+	}
+	pid_t pid = fork();
+	if (pid == -1) {
+		error(EXIT_FAILURE, errno, "fork failure");
+	} else if (pid) {
+		// In parent
+		int res;
+		if (close(pipe_in[0]) == -1)
+			error(EXIT_FAILURE, errno, "close failure");
+
+		if (write(pipe_in[1], pathname, strlen(pathname)) == -1)
+			error(EXIT_FAILURE, errno, "write failure");
+
+		if (close(pipe_in[1]) == -1)
+			error(EXIT_FAILURE, errno, "close failure");
+
+		if (wait(&res) == -1)
+			error(EXIT_FAILURE, errno, "wait failure");
+
+	} else {
+		// In child
+		if (close(pipe_in[1]) == -1)
+			error(EXIT_FAILURE, errno, "close failure");
+
+		if (dup2(pipe_in[0], 0) == -1)
+			error(EXIT_FAILURE, errno, "dup2 failure");
+
+		char* const updated_args[4] = {"rank", line_tokenized[1],
+					line_tokenized[2], "uplink"};
+		if (execv("rank", updated_args) == -1)
+			error(EXIT_FAILURE, errno, "execv failure");
 	}
 }
