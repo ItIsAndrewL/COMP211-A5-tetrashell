@@ -3,6 +3,6 @@ save.bin
 rank
 check
 modify
-recover
-/recovered/
+recover/
+recovered
 !tetrashell.c
