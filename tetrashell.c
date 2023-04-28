@@ -22,7 +22,7 @@ void runCheck(char**, char*);
 void runModify(char**, char*);
 void runRank(char**, char*);
 void runInfo(char*, TetrisGameState*);
-void runSwitch(char*, TetrisGameState*, int*, ssize_t*);
+void runSwitch(char*, TetrisGameState**, int*, ssize_t*);
 
 // MAIN
 int main(int argc, char **argv) {
@@ -136,9 +136,9 @@ int main(int argc, char **argv) {
 			} else if (strcmp("info", line_tokenized[0]) == 0) {
 				runInfo(pathname, game);
 			} else if (strcmp("switch", line_tokenized[0]) == 0) {
-				runSwitch(pathname, game, &fd, &pathname_length);
+				runSwitch(pathname, &game, &fd, &pathname_length);
 			}	else {
-				printf("Command not recognized, try:\nrecover\ncheck\nrank\nmodify");
+				printf("Command not recognized, try:\nrecover\ncheck\nrank\nmodify\ninfo\nswitch\n");
 			}
 		}
 		// Need to abbreviate pathname, maybe use tokenizing? Some string 
@@ -146,7 +146,8 @@ int main(int argc, char **argv) {
 		printf("\033[38;2;123;175;212m%s\033[0m@\033[31mtetrashell\033[0m[%s][%d/%d]> ", login_info->pw_name, pathname, game->score, game->lines);
 	} while ((num_read = getline(&current_line, &n, stdin)) != -1 
 							&& strcmp("exit\n", current_line) != 0);
-
+	
+	close(fd);
 	free(current_line);
 	free(pathname);
 
@@ -260,11 +261,11 @@ void runRank(char **line_tokenized, char *pathname) {
 	}
 }
 
-void runInfo(char* pathname, TetrisGameState* game) {
+void runInfo(char *pathname, TetrisGameState *game) {
 	printf("Current savefile: %s\nScore: %d\nLines: %d\n", pathname, game->score, game->lines);
 }
 
-void runSwitch(char* pathname, TetrisGameState* game, int* fd, ssize_t* pathname_length) {
+void runSwitch(char *pathname, TetrisGameState **game, int *fd, ssize_t *pathname_length) {
 	close(*fd);
 		
 	printf("Enter the new path to the Tetris quicksave: ");
@@ -283,12 +284,8 @@ void runSwitch(char* pathname, TetrisGameState* game, int* fd, ssize_t* pathname
 
 	printf("You have entered %s as your file\n", pathname);
 	
-	TetrisGameState *new_game;
-
-	if ((new_game = mmap(0, sizeof(TetrisGameState),
+	if ((*game = mmap(0, sizeof(TetrisGameState),
 					PROT_READ, MAP_PRIVATE, *fd, 0)) == MAP_FAILED) {
 		error(EXIT_FAILURE, errno, "mmap failure");
-	
-	*game = *new_game;
 	}
 }
