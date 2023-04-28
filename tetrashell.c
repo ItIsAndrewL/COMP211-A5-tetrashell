@@ -21,6 +21,8 @@ void runRecover(char**);
 void runCheck(char**, char*);
 void runModify(char**, char*);
 void runRank(char**, char*);
+void runInfo(char*, TetrisGameState*);
+void runSwitch(char*, TetrisGameState*, int*, ssize_t*);
 
 // MAIN
 int main(int argc, char **argv) {
@@ -68,7 +70,7 @@ int main(int argc, char **argv) {
 	TetrisGameState* game;
 
 	ssize_t pathname_length;
-	size_t init_pathname_n;
+	size_t init_pathname_n = 0;
 	printf("Enter the path to the Tetris quicksave you wish to begin hacking: ");
 	if ((pathname_length = getline(&pathname, &init_pathname_n, stdin)) == -1) {
 		error(EXIT_FAILURE, errno, "getline failure"); 
@@ -131,7 +133,11 @@ int main(int argc, char **argv) {
 				runModify(line_tokenized, pathname);
 			} else if (strcmp("rank", line_tokenized[0]) == 0) {
 				runRank(line_tokenized, pathname);
-			} else {
+			} else if (strcmp("info", line_tokenized[0]) == 0) {
+				runInfo(pathname, game);
+			} else if (strcmp("switch", line_tokenized[0]) == 0) {
+				runSwitch(pathname, game, &fd, &pathname_length);
+			}	else {
 				printf("Command not recognized, try:\nrecover\ncheck\nrank\nmodify");
 			}
 		}
@@ -251,5 +257,38 @@ void runRank(char **line_tokenized, char *pathname) {
 					line_tokenized[2], "uplink", NULL};
 		if (execv("rank", updated_args) == -1)
 			error(EXIT_FAILURE, errno, "execv failure");
+	}
+}
+
+void runInfo(char* pathname, TetrisGameState* game) {
+	printf("Current savefile: %s\nScore: %d\nLines: %d\n", pathname, game->score, game->lines);
+}
+
+void runSwitch(char* pathname, TetrisGameState* game, int* fd, ssize_t* pathname_length) {
+	close(*fd);
+		
+	printf("Enter the new path to the Tetris quicksave: ");
+	if ((*pathname_length = getline(&pathname, pathname_length, stdin)) == -1) {
+		error(EXIT_FAILURE, errno, "getline failure"); 
+	}
+
+	// Testing for newline at end
+	if (pathname[*pathname_length - 1] == '\n') {
+		pathname[*pathname_length - 1] = '\0';
+	}
+	
+	if ((*fd = open(pathname, O_RDWR)) == 0) {
+		error(EXIT_FAILURE, errno, "open failure");
+	}
+
+	printf("You have entered %s as your file\n", pathname);
+	
+	TetrisGameState *new_game;
+
+	if ((new_game = mmap(0, sizeof(TetrisGameState),
+					PROT_READ, MAP_PRIVATE, *fd, 0)) == MAP_FAILED) {
+		error(EXIT_FAILURE, errno, "mmap failure");
+	
+	*game = *new_game;
 	}
 }
