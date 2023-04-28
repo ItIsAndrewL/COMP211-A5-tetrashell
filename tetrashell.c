@@ -247,8 +247,8 @@ void runRank(char **line_tokenized, char *pathname) {
 		if (dup2(pipe_in[0], 0) == -1)
 			error(EXIT_FAILURE, errno, "dup2 failure");
 
-		char* const updated_args[4] = {"rank", line_tokenized[1],
-					line_tokenized[2], "uplink"};
+		char* const updated_args[5] = {"rank", line_tokenized[1],
+					line_tokenized[2], "uplink", NULL};
 		if (execv("rank", updated_args) == -1)
 			error(EXIT_FAILURE, errno, "execv failure");
 	}
