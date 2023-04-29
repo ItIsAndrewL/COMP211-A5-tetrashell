@@ -23,6 +23,8 @@ void runModify(char**, char*);
 void runRank(char**, char*, int, char*);
 void runInfo(char*, TetrisGameState*);
 void runSwitch(char*, TetrisGameState**, int*, ssize_t*);
+void runHelp(char*);
+void runVisualize(TetrisGameState*);
 
 // MAIN
 int main(int argc, char **argv) {
@@ -137,8 +139,12 @@ int main(int argc, char **argv) {
 				runInfo(pathname, game);
 			} else if (strcmp("switch", line_tokenized[0]) == 0) {
 				runSwitch(pathname, &game, &fd, &pathname_length);
-			}	else {
-				printf("Command not recognized, try:\nrecover\ncheck\nrank\nmodify\ninfo\nswitch\n");
+			} else if (strcmp("help", line_tokenized[0]) == 0) {
+				runHelp(line_tokenized[1]);
+			} else if (strcmp("visualize", line_tokenized[0]) == 0) {
+				runVisualize(game);
+			} else {
+				printf("Command not recognized, try:\nrecover\ncheck\nrank\nmodify\ninfo\nswitch\nhelp\nvisualize\nexit\n");
 			}
 		}
 		// Need to abbreviate pathname, maybe use tokenizing? Some string 
@@ -419,4 +425,64 @@ void runSwitch(char *pathname, TetrisGameState **game, int *fd, ssize_t *pathnam
 					PROT_READ, MAP_PRIVATE, *fd, 0)) == MAP_FAILED) {
 		error(EXIT_FAILURE, errno, "mmap failure");
 	}
+}
+
+void runHelp(char* command) {
+	// Else if ladder for commands
+	if (strcmp("recover", command) == 0) {
+		printf("recover <path_to_disk.img file>\nScans the disk.img file for valid quicksaves, and outputs them in a new folder, recovered which is created in the current directory\n");
+	} else if (strcmp("check", command) == 0) {
+		printf("check\nRuns the current quicksave through the validation software to determine if the curernt quicksave is valid or not\n");
+	} else if (strcmp("modify", command) == 0) {
+		printf("modify <lines/score> <new_amount>\nModifies the current quicksave's lines or score to the new_amount\n");
+	} else if (strcmp("rank", command) == 0) {
+		printf("rank [lines/score] [amount_to_show]\nUploads your current quicksave to the server leaderboard and displays the specified amount_to_show top leaders based off the lines or score argument provided.\n");
+	} else if (strcmp("info", command) == 0) {
+		printf("info\nPrints current saves pathname, score, and lines\n");
+	} else if (strcmp("switch", command) == 0) {
+		printf("switch <path_to_new_Tetris_Quicksave.bin>\nSwitches the current quicksave to the new_Tetris_Quicksave.bin file\n");
+	} else if (strcmp("help", command) == 0) {
+		printf("help <command>\nPrints usage information for command\n");
+	} else if (strcmp("visualize", command) == 0) {
+		printf("visualize\nPrints out the current state of the game board as it would be displayed in game.\n");
+	} else if (strcmp("exit", command) == 0) {
+		printf("exit\nExits tetrashell\n");
+	} else {
+		printf("Command not recognized, try getting help with:\nrecover\ncheck\nrank\nmodify\ninfo\nswitch\nhelp\nvisualize\n");
+	}
+}
+
+void runVisualize(TetrisGameState* game) {
+	printf("+-----Game board-----+\n");
+// 	int i = 0;
+// 	while (i < BLOCKS_WIDE * BLOCKS_TALL) {
+// 		printf("|%.*s|\n", BLOCKS_WIDE, (game->board)+i);
+// 		i += BLOCKS_WIDE;
+// 	}
+	for (int i = 0; i < BLOCKS_WIDE * BLOCKS_TALL; i++) {
+		if (i == 0) {
+			printf("|");
+		} else if (i % BLOCKS_WIDE == 0 && i != 0) {
+			printf("|\n|");
+		}
+		printf("%c%c", *((game->board)+i), *((game->board)+i));
+		if (i == (BLOCKS_WIDE * BLOCKS_TALL) - 1) {
+			printf("|\n");
+		}
+	}
+	printf("+--------------------+\n+--Next--+\n");
+	int piece_array_width = 4;
+	int piece_array_height = 4;
+	for (int i = 0; i < piece_array_width * piece_array_height; i++) {
+		if (i == 0) {
+			printf("|");
+		} else if (i % piece_array_width == 0 && i != 0) {
+			printf("|\n|");
+		}
+		printf("%c%c", *((tetris_pieces[game->next_piece])+i), *((tetris_pieces[game->next_piece])+i));
+		if (i == (piece_array_width * piece_array_height) - 1) {
+			printf("|\n");
+		}
+	}
+	printf("+--------+\n");
 }
