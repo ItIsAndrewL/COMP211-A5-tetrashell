@@ -156,6 +156,8 @@ int main(int argc, char **argv) {
 	close(fd);
 	free(current_line);
 	free(pathname);
+	if (munmap(game, sizeof(TetrisGameState)) == -1)
+		error(EXIT_FAILURE, errno, "Error in munmap");
 
 	if (num_read == -1) {
 		error(EXIT_FAILURE, errno, "getline failure");
