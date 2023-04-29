@@ -26,6 +26,8 @@ void runSwitch(char*, TetrisGameState**, int*, ssize_t*);
 void runHelp(char*);
 void runVisualize(TetrisGameState*);
 
+errno = 0;
+
 // MAIN
 int main(int argc, char **argv) {
   // Print intro message
