@@ -344,7 +344,7 @@ void runRank(char **line_tokenized, char *pathname, int numArgs, char *uName) {
 
 			// Print out
 			int end = my_save_i + 5 <= num_lines ? my_save_i + 5 : num_lines;
-			for (int d = my_save_i - 5 < 0 ? 0 : my_save_i; d <= end; d++) {
+			for (int d = my_save_i - 5 < 0 ? 0 : my_save_i - 5; d <= end; d++) {
 				if (d == my_save_i) {
 					printf("\x1b[1m>>> %i %s <<<\x1b[22m\n", d + 1, leaderboard[d]);
 				} else {
