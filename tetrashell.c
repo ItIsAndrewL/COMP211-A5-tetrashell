@@ -342,4 +342,36 @@ void runHelp(char* command) {
 }
 
 void runVisualize(TetrisGameState* game) {
+	printf("+-----Game board-----+\n");
+// 	int i = 0;
+// 	while (i < BLOCKS_WIDE * BLOCKS_TALL) {
+// 		printf("|%.*s|\n", BLOCKS_WIDE, (game->board)+i);
+// 		i += BLOCKS_WIDE;
+// 	}
+	for (int i = 0; i < BLOCKS_WIDE * BLOCKS_TALL; i++) {
+		if (i == 0) {
+			printf("|");
+		} else if (i % BLOCKS_WIDE == 0 && i != 0) {
+			printf("|\n|");
+		}
+		printf("%c%c", *((game->board)+i), *((game->board)+i));
+		if (i == (BLOCKS_WIDE * BLOCKS_TALL) - 1) {
+			printf("|\n");
+		}
+	}
+	printf("+--------------------+\n+--Next--+\n");
+	int piece_array_width = 4;
+	int piece_array_height = 4;
+	for (int i = 0; i < piece_array_width * piece_array_height; i++) {
+		if (i == 0) {
+			printf("|");
+		} else if (i % piece_array_width == 0 && i != 0) {
+			printf("|\n|");
+		}
+		printf("%c%c", *((tetris_pieces[game->next_piece])+i), *((tetris_pieces[game->next_piece])+i));
+		if (i == (piece_array_width * piece_array_height) - 1) {
+			printf("|\n");
+		}
+	}
+	printf("+--------+\n");
 }
