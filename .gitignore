@@ -1,6 +1,7 @@
 tetrashell
 save*.bin
 tetris_quicksave*.bin
+*.swp
 rank
 check
 modify
