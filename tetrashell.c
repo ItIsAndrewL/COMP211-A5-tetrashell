@@ -20,7 +20,7 @@ int countArgs(char*);
 void runRecover(char**);
 void runCheck(char**, char*);
 void runModify(char**, char*);
-void runRank(char**, char*, int);
+void runRank(char**, char*, int, char*);
 void runInfo(char*, TetrisGameState*);
 void runSwitch(char*, TetrisGameState**, int*, ssize_t*);
 
@@ -132,7 +132,7 @@ int main(int argc, char **argv) {
 			} else if (strcmp("modify", line_tokenized[0]) == 0) {
 				runModify(line_tokenized, pathname);
 			} else if (strcmp("rank", line_tokenized[0]) == 0) {
-				runRank(line_tokenized, pathname, i);
+				runRank(line_tokenized, pathname, i, login_info->pw_name);
 			} else if (strcmp("info", line_tokenized[0]) == 0) {
 				runInfo(pathname, game);
 			} else if (strcmp("switch", line_tokenized[0]) == 0) {
@@ -223,36 +223,147 @@ void runModify(char **line_tokenized, char *pathname) {
 	}
 }
 
-void runRank(char **line_tokenized, char *pathname, int numArgs) {
+void runRank(char **line_tokenized, char *pathname, int numArgs, char *uName) {
 	int pipe_in[2];
-	if (pipe(pipe_in) == -1) {
-		error(EXIT_FAILURE, errno, "pipe failure");
-	}
+	int pipe_out[2];
+	if (pipe(pipe_in) == -1)
+		error(EXIT_FAILURE, errno, "pipe in failure");
+
+	// Only setting up pipe out if the number of args is less than 3
+	if (numArgs < 3 && pipe(pipe_out) == -1)
+		error(EXIT_FAILURE, errno, "pipe out failure");
+
 	pid_t pid = fork();
 	if (pid == -1) {
 		error(EXIT_FAILURE, errno, "fork failure");
 	} else if (pid) {
 		// In parent
 		int res;
+		// Close pipe in/out unused side
 		if (close(pipe_in[0]) == -1)
-			error(EXIT_FAILURE, errno, "close failure");
+			error(EXIT_FAILURE, errno, "close failure in pipe in");
 
+		if (numArgs < 3 && close(pipe_out[1]) == -1)
+			error(EXIT_FAILURE, errno, "close failure in pipe out");
+
+		// Write to stdin & send EOF
 		if (write(pipe_in[1], pathname, strlen(pathname)) == -1)
 			error(EXIT_FAILURE, errno, "write failure");
 
 		if (close(pipe_in[1]) == -1)
-			error(EXIT_FAILURE, errno, "close failure");
+			error(EXIT_FAILURE, errno, "close failure for pipe in");
 
 		if (wait(&res) == -1)
 			error(EXIT_FAILURE, errno, "wait failure");
 
+		// Read output from child function
+		if (numArgs < 3) {
+			const int READ_SIZE = 4096;
+			size_t num_read = 0, total_read = 0, alloc_size = 0;
+			char *in;
+			do {
+				total_read += num_read;
+				if (total_read + READ_SIZE >= alloc_size) {
+						alloc_size = alloc_size == 0 ? READ_SIZE : alloc_size * 2;
+						in = realloc(in, alloc_size + 1);
+						if (in == NULL)
+							error(EXIT_FAILURE, errno, "realloc failure");
+				}
+			} while((num_read = read(pipe_out[0], in + total_read, READ_SIZE)) > 0);
+
+			// Error check fread
+			if (num_read == -1)
+				free(in);
+				error(EXIT_FAILURE, errno, "error in reading rank output");
+
+			// Null terminate the input
+			in[total_read] = '\0';
+
+			// Count number of output (since there may not be 1000 saves)
+			unsigned int num_lines = 0;
+			int i;
+			for (i = 0; i < total_read; i++) {
+				if (in[i] == '\n')
+					num_lines++;
+			}
+			// Don't miss last one
+			if (in[i-1] != '\n')
+				num_lines++;
+
+			char **leaderboard = malloc(sizeof(char*) * num_lines);
+			if (leaderboard == NULL) {
+				free(in);
+				error(EXIT_FAILURE, errno, "error in creating leaderboard malloc");
+			}
+
+			// Create our inputted str we will look for
+			size_t len = strlen(pathname) + strlen(uName) + 2;// +2 for \n & "/"
+			char *my_file = malloc(sizeof(char) * len);
+			if (snprintf(my_file, len, "%s/%s", uName, pathname) < 0) {
+				free(in);
+				free(my_file);
+				free(leaderboard);
+				error(EXIT_FAILURE, errno, "error in snprintf");
+			}
+
+			// Break input up & store pointers in leaderboard
+			i = 0;
+			int my_save_i = 0;
+			leaderboard[i] = in;
+			for (int c = 0; c < total_read; c++) {
+				if (in[c] == '\n') {
+					in[c] = '\0';
+					if (++i < num_lines) {
+						leaderboard[i] = in + c + 1;
+					}
+					// Save the index of my save
+					if (strcmp(leaderboard[i-1], my_file) == 0) {
+						my_save_i = i-1;
+					}
+				}
+			}
+
+			// Check if file was not found on the server
+			if (my_save_i == 0) {
+				free(in);
+				free(leaderboard);
+				free(my_file);
+				printf("Your file was not found on the server, make sure it passes "
+					 "check and try again\n");
+				return;
+			}
+
+			// Print out
+			int end = my_save_i + 5 <= num_lines ? my_save_i + 5 : num_lines;
+			for (int d = my_save_i - 5 < 0 ? 0 : my_save_i; d <= end; d++) {
+				if (d == my_save_i) {
+					printf("\x1b[1m>>> %i %s <<<\x1b[22m\n", d + 1, leaderboard[d]);
+				} else {
+					printf("%i %s\n", d + 1, leaderboard[d]);
+				}
+			}
+
+			// Free prior to exit
+			free(in);
+			free(leaderboard);
+			free(my_file);
+
+			if (close(pipe_out[0]) == -1)
+				error(EXIT_FAILURE, errno, "error closing pipe out");
+		}
 	} else {
 		// In child
 		if (close(pipe_in[1]) == -1)
-			error(EXIT_FAILURE, errno, "close failure");
+			error(EXIT_FAILURE, errno, "close failure for pipe in");
 
 		if (dup2(pipe_in[0], 0) == -1)
-			error(EXIT_FAILURE, errno, "dup2 failure");
+			error(EXIT_FAILURE, errno, "dup2 failure for pipe in");
+
+		if (numArgs < 3 && close(pipe_out[0]) == -1)
+			error(EXIT_FAILURE, errno, "close pipe out failure");
+
+		if (numArgs < 3 && dup2(pipe_out[1], 1) == -1)
+			error(EXIT_FAILURE, errno, "dup2 failure for pipe out");
 
 		// Update Args & Quickrank
 		char* updated_args[5];
@@ -265,13 +376,13 @@ void runRank(char **line_tokenized, char *pathname, int numArgs) {
 		} else if (numArgs == 2) {
 			updated_args[0] = "rank";
 			updated_args[1] = line_tokenized[1];
-			updated_args[2] = "10"; // Defaults to 10 lines
+			updated_args[2] = "1000"; // Defaults to 1000 lines for PrettyRank
 			updated_args[3] = "uplink";
 			updated_args[4] = NULL;
 		} else {
 			updated_args[0] = "rank";
 			updated_args[1] = "score"; // Deafults to score
-			updated_args[2] = "10"; // Defaults to 10 lines
+			updated_args[2] = "1000"; // Defaults to 1000 lines for PrettyRank
 			updated_args[3] = "uplink";
 			updated_args[4] = NULL;
 		}
