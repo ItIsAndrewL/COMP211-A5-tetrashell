@@ -279,10 +279,11 @@ void runRank(char **line_tokenized, char *pathname, int numArgs, char *uName) {
 				}
 			} while((num_read = read(pipe_out[0], in + total_read, READ_SIZE)) > 0);
 
-			// Error check fread
-			if (num_read == -1)
+			// Error check read
+			if (num_read == -1) {
 				free(in);
 				error(EXIT_FAILURE, errno, "error in reading rank output");
+			}
 
 			// Null terminate the input
 			in[total_read] = '\0';
