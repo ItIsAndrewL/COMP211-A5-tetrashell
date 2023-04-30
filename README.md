@@ -29,7 +29,7 @@ The following commands are supported in the tetrashell:
   - Defaults to `score` ranking metric without the first argument
 - `check` (15pts)
   - Runs the current quicksave through the validation software to
-  determine if the curernt quicksave is valid or not
+  determine if the current quicksave is valid or not
 - `recover <path_to_disk.img file>` (10pts)
   - Scans the `disk.img` file for valid quicksaves, and outputs them
   in a new folder, `recovered` which is created in the current
@@ -38,7 +38,7 @@ The following commands are supported in the tetrashell:
   - Prompts for a new file, then switches the current quicksave to that new file
 - `visualize` (15pts)
   - Prints out the current state of the game board as it would be
-  displayed in game.
+  displayed in game, followed by the current and next piece.
 - `info` (5pts)
   - Prints current saves pathname, score, and lines
 - `help <command>` (7pts)
