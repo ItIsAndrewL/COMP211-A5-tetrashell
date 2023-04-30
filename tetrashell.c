@@ -345,6 +345,8 @@ void runRank(char **line_tokenized, char *pathname, int numArgs, char *uName) {
 			if (arg == 0) {
 				fprintf(stderr, "Error in converting arg 2 into int");
 				free(in);
+				free(leaderboard);
+				free(my_file);
 				return;
 			}
 			int amt_to_print = arg < num_lines ? arg : num_lines;
