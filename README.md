@@ -26,7 +26,7 @@ The following commands are supported in the tetrashell:
   displays the specified `amount_to_show` top leaders based off the
   `lines` or `score` argument provided.
   - With no `amount_to_show` provided, the 5 game saves above and below yours will be printed
-  - Defaults to `score` ranking metric without the first argument
+  - Defaults to `score` ranking metric when not specified
 - `check` (15pts)
   - Runs the current quicksave through the validation software to
   determine if the current quicksave is valid or not
