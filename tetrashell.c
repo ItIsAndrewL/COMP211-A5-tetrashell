@@ -265,84 +265,98 @@ void runRank(char **line_tokenized, char *pathname, int numArgs, char *uName) {
 			error(EXIT_FAILURE, errno, "wait failure");
 
 		// Read output from child function
-		if (numArgs < 3) {
-			const int READ_SIZE = 4096;
-			size_t num_read = 0, total_read = 0, alloc_size = 0;
-			char *in;
-			do {
-				total_read += num_read;
-				if (total_read + READ_SIZE >= alloc_size) {
-						alloc_size = alloc_size == 0 ? READ_SIZE : alloc_size * 2;
-						in = realloc(in, alloc_size + 1);
-						if (in == NULL)
-							error(EXIT_FAILURE, errno, "realloc failure");
-				}
-			} while((num_read = read(pipe_out[0], in + total_read, READ_SIZE)) > 0);
-
-			// Error check read
-			if (num_read == -1) {
-				free(in);
-				error(EXIT_FAILURE, errno, "error in reading rank output");
+		const int READ_SIZE = 4096;
+		size_t num_read = 0, total_read = 0, alloc_size = 0;
+		char *in;
+		do {
+			total_read += num_read;
+			if (total_read + READ_SIZE >= alloc_size) {
+					alloc_size = alloc_size == 0 ? READ_SIZE : alloc_size * 2;
+					in = realloc(in, alloc_size + 1);
+					if (in == NULL)
+						error(EXIT_FAILURE, errno, "realloc failure");
 			}
+		} while((num_read = read(pipe_out[0], in + total_read, READ_SIZE)) > 0);
+		// Error check read
+		if (num_read == -1) {
+			free(in);
+			error(EXIT_FAILURE, errno, "error in reading rank output");
+		}
+		// Null terminate the input
+		in[total_read] = '\0';
 
-			// Null terminate the input
-			in[total_read] = '\0';
-
-			// Count number of output (since there may not be 1000 saves)
-			unsigned int num_lines = 0;
-			int i;
-			for (i = 0; i < total_read; i++) {
-				if (in[i] == '\n')
-					num_lines++;
-			}
-			// Don't miss last one
-			if (in[i-1] != '\n')
+		// Count number of output (since there may not be 1000 saves)
+		unsigned int num_lines = 0;
+		int i;
+		for (i = 0; i < total_read; i++) {
+			if (in[i] == '\n')
 				num_lines++;
+		}
+		// Don't miss last one
+		if (in[i-1] != '\n')
+			num_lines++;
 
-			char **leaderboard = malloc(sizeof(char*) * num_lines);
-			if (leaderboard == NULL) {
-				free(in);
-				error(EXIT_FAILURE, errno, "error in creating leaderboard malloc");
-			}
+		char **leaderboard = malloc(sizeof(char*) * num_lines);
+		if (leaderboard == NULL) {
+			free(in);
+			error(EXIT_FAILURE, errno, "error in creating leaderboard malloc");
+		}
 
-			// Create our inputted str we will look for
-			size_t len = strlen(pathname) + strlen(uName) + 2;// +2 for \n & "/"
-			char *my_file = malloc(sizeof(char) * len);
-			if (snprintf(my_file, len, "%s/%s", uName, pathname) < 0) {
-				free(in);
-				free(my_file);
-				free(leaderboard);
-				error(EXIT_FAILURE, errno, "error in snprintf");
-			}
+		// Create our inputted str we will look for
+		size_t len = strlen(pathname) + strlen(uName) + 2;// +2 for \n & "/"
+		char *my_file = malloc(sizeof(char) * len);
+		if (snprintf(my_file, len, "%s/%s", uName, pathname) < 0) {
+			free(in);
+			free(my_file);
+			free(leaderboard);
+			error(EXIT_FAILURE, errno, "error in snprintf");
+		}
 
-			// Break input up & store pointers in leaderboard
-			i = 0;
-			int my_save_i = 0;
-			leaderboard[i] = in;
-			for (int c = 0; c < total_read; c++) {
-				if (in[c] == '\n') {
-					in[c] = '\0';
-					if (++i < num_lines) {
-						leaderboard[i] = in + c + 1;
-					}
-					// Save the index of my save
-					if (strcmp(leaderboard[i-1], my_file) == 0) {
-						my_save_i = i-1;
-					}
+		// Break input up & store pointers in leaderboard
+		i = 0;
+		int my_save_i = -1;
+		leaderboard[i] = in;
+		for (int c = 0; c < total_read; c++) {
+			if (in[c] == '\n') {
+				in[c] = '\0';
+				if (++i < num_lines) {
+					leaderboard[i] = in + c + 1;
+				}
+				// Save the index of my save
+				if (strcmp(leaderboard[i-1], my_file) == 0) {
+					my_save_i = i-1;
 				}
 			}
+		}
 
-			// Check if file was not found on the server
-			if (my_save_i == 0) {
+		// Check if file was not found on the server
+		if (my_save_i == -1) {
+			free(in);
+			free(leaderboard);
+			free(my_file);
+			printf("Your file was not found on the server, make sure it passes "
+				 "check and try again\n");
+			return;
+		}
+
+// If number was specified, get it or the min num of lines
+		if (numArgs >= 3) {
+			int arg = atoi(line_tokenized[2]);
+			if (arg == 0) {
+				fprintf(stderr, "Error in converting arg 2 into int");
 				free(in);
-				free(leaderboard);
-				free(my_file);
-				printf("Your file was not found on the server, make sure it passes "
-					 "check and try again\n");
 				return;
 			}
-
-			// Print out
+			int amt_to_print = arg < num_lines ? arg : num_lines;
+			for (int d = 0; d < amt_to_print; d++) {
+				if (d == my_save_i) {
+					printf("\x1b[1m>>> %i %s <<<\x1b[22m\n", d + 1, leaderboard[d]);
+				} else {
+					printf("%i %s\n", d + 1, leaderboard[d]);
+				}
+			}
+		} else {
+			// Print out around our quicksave
 			int end = my_save_i + 5 <= num_lines ? my_save_i + 5 : num_lines;
 			for (int d = my_save_i - 5 < 0 ? 0 : my_save_i - 5; d <= end; d++) {
 				if (d == my_save_i) {
@@ -351,15 +365,15 @@ void runRank(char **line_tokenized, char *pathname, int numArgs, char *uName) {
 					printf("%i %s\n", d + 1, leaderboard[d]);
 				}
 			}
-
-			// Free prior to exit
-			free(in);
-			free(leaderboard);
-			free(my_file);
-
-			if (close(pipe_out[0]) == -1)
-				error(EXIT_FAILURE, errno, "error closing pipe out");
 		}
+
+		// Free prior to exit
+		free(in);
+		free(leaderboard);
+		free(my_file);
+
+		if (close(pipe_out[0]) == -1)
+			error(EXIT_FAILURE, errno, "error closing pipe out");
 	} else {
 		// In child
 		if (close(pipe_in[1]) == -1)
