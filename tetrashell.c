@@ -376,17 +376,11 @@ void runRank(char **line_tokenized, char *pathname, int numArgs, char *uName) {
 			error(EXIT_FAILURE, errno, "error closing pipe out");
 	} else {
 		// In child
-		if (close(pipe_in[1]) == -1)
-			error(EXIT_FAILURE, errno, "close failure for pipe in");
+		if (close(pipe_in[1]) == -1 || close(pipe_out[0]) == -1)
+			error(EXIT_FAILURE, errno, "close failure for pipe");
 
-		if (dup2(pipe_in[0], 0) == -1)
+		if (dup2(pipe_in[0], 0) == -1 || dup2(pipe_out[1], 1) == -1)
 			error(EXIT_FAILURE, errno, "dup2 failure for pipe in");
-
-		if (numArgs < 3 && close(pipe_out[0]) == -1)
-			error(EXIT_FAILURE, errno, "close pipe out failure");
-
-		if (numArgs < 3 && dup2(pipe_out[1], 1) == -1)
-			error(EXIT_FAILURE, errno, "dup2 failure for pipe out");
 
 		// Update Args & Quickrank
 		char* updated_args[5];
