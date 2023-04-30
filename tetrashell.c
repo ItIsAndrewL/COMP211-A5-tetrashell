@@ -244,11 +244,8 @@ void runRank(char **line_tokenized, char *pathname, int numArgs, char *uName) {
 		// In parent
 		int res;
 		// Close pipe in/out unused side
-		if (close(pipe_in[0]) == -1)
+		if (close(pipe_in[0]) == -1 || close(pipe_out[1]) == -1)
 			error(EXIT_FAILURE, errno, "close failure in pipe in");
-
-		if (numArgs < 3 && close(pipe_out[1]) == -1)
-			error(EXIT_FAILURE, errno, "close failure in pipe out");
 
 		// Write to stdin & send EOF
 		if (write(pipe_in[1], pathname, strlen(pathname)) == -1)
@@ -385,7 +382,7 @@ void runRank(char **line_tokenized, char *pathname, int numArgs, char *uName) {
 		if (numArgs >= 3) {
 			updated_args[0] = "rank";
 			updated_args[1] = line_tokenized[1];
-			updated_args[2] = "1000";
+			updated_args[2] = line_tokenized[2];
 			updated_args[3] = "uplink";
 			updated_args[4] = NULL;
 		} else if (numArgs == 2) {
