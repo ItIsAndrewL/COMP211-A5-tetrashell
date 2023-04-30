@@ -234,12 +234,8 @@ void runModify(char **line_tokenized, char *pathname) {
 void runRank(char **line_tokenized, char *pathname, int numArgs, char *uName) {
 	int pipe_in[2];
 	int pipe_out[2];
-	if (pipe(pipe_in) == -1)
-		error(EXIT_FAILURE, errno, "pipe in failure");
-
-	// Only setting up pipe out if the number of args is less than 3
-	if (numArgs < 3 && pipe(pipe_out) == -1)
-		error(EXIT_FAILURE, errno, "pipe out failure");
+	if (pipe(pipe_in) == -1 || pipe(pipe_out) == -1)
+		error(EXIT_FAILURE, errno, "pipe failure");
 
 	pid_t pid = fork();
 	if (pid == -1) {
