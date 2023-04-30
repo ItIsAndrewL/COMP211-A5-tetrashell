@@ -34,8 +34,8 @@ The following commands are supported in the tetrashell:
   - Scans the `disk.img` file for valid quicksaves, and outputs them
   in a new folder, `recovered` which is created in the current
   directory
-- `switch <path_to_new_Tetris_Quicksave.bin>` (5pts)
-  - Switches the current quicksave to the `new_Tetris_Quicksave.bin` file
+- `switch` (5pts)
+  - Prompts for a new file, then switches the current quicksave to that new file
 - `visualize` (15pts)
   - Prints out the current state of the game board as it would be
   displayed in game.

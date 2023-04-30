@@ -22,7 +22,7 @@ void runCheck(char**, char*);
 void runModify(char**, char*);
 void runRank(char**, char*, int, char*);
 void runInfo(char*, TetrisGameState*);
-void runSwitch(char*, TetrisGameState**, int*, ssize_t*);
+void runSwitch(char**, TetrisGameState**, int*, ssize_t*);
 void runHelp(char*);
 void runVisualize(TetrisGameState*);
 
@@ -138,7 +138,7 @@ int main(int argc, char **argv) {
 			} else if (strcmp("info", line_tokenized[0]) == 0) {
 				runInfo(pathname, game);
 			} else if (strcmp("switch", line_tokenized[0]) == 0) {
-				runSwitch(pathname, &game, &fd, &pathname_length);
+				runSwitch(&pathname, &game, &fd, &pathname_length);
 			} else if (strcmp("help", line_tokenized[0]) == 0) {
 				runHelp(line_tokenized[1]);
 			} else if (strcmp("visualize", line_tokenized[0]) == 0) {
@@ -149,7 +149,7 @@ int main(int argc, char **argv) {
 		}
 		// Need to abbreviate pathname, maybe use tokenizing? Some string 
 		// manipulation method would also probably work
-		printf("\033[38;2;123;175;212m%s\033[0m@\033[31mtetrashell\033[0m[%s][%d/%d]> ", login_info->pw_name, pathname, game->score, game->lines);
+		printf("\033[38;2;123;175;212m%s\033[0m\033[31m@tetrashell\033[0m[%s][%d/%d]> ", login_info->pw_name, pathname, game->score, game->lines);
 	} while ((num_read = getline(&current_line, &n, stdin)) != -1 
 							&& strcmp("exit\n", current_line) != 0);
 	
@@ -405,24 +405,27 @@ void runInfo(char *pathname, TetrisGameState *game) {
 	printf("Current savefile: %s\nScore: %d\nLines: %d\n", pathname, game->score, game->lines);
 }
 
-void runSwitch(char *pathname, TetrisGameState **game, int *fd, ssize_t *pathname_length) {
+void runSwitch(char **pathname, TetrisGameState **game, int *fd, ssize_t *pathname_length) {
 	close(*fd);
-		
+	free(*pathname);
+	*pathname = NULL;
+	*pathname_length = 0;
+
 	printf("Enter the new path to the Tetris quicksave: ");
-	if ((*pathname_length = getline(&pathname, pathname_length, stdin)) == -1) {
+	if ((*pathname_length = getline(pathname, pathname_length, stdin)) == -1) {
 		error(EXIT_FAILURE, errno, "getline failure"); 
 	}
 
 	// Testing for newline at end
-	if (pathname[*pathname_length - 1] == '\n') {
-		pathname[*pathname_length - 1] = '\0';
+	if ((*pathname)[*pathname_length - 1] == '\n') {
+		(*pathname)[*pathname_length - 1] = '\0';
 	}
 	
-	if ((*fd = open(pathname, O_RDWR)) == 0) {
+	if ((*fd = open(*pathname, O_RDWR)) == 0) {
 		error(EXIT_FAILURE, errno, "open failure");
 	}
 
-	printf("You have entered %s as your file\n", pathname);
+	printf("You have entered %s as your file\n", *pathname);
 	
 	if ((*game = mmap(0, sizeof(TetrisGameState),
 					PROT_READ, MAP_PRIVATE, *fd, 0)) == MAP_FAILED) {
@@ -432,10 +435,12 @@ void runSwitch(char *pathname, TetrisGameState **game, int *fd, ssize_t *pathnam
 
 void runHelp(char* command) {
 	// Else if ladder for commands
-	if (strcmp("recover", command) == 0) {
+	if (command == NULL) {
+		fprintf(stderr, "Please provide a command that you would like help with, like this:\nhelp <command>\n");
+	} else if (strcmp("recover", command) == 0) {
 		printf("recover <path_to_disk.img file>\nScans the disk.img file for valid quicksaves, and outputs them in a new folder, recovered which is created in the current directory\n");
 	} else if (strcmp("check", command) == 0) {
-		printf("check\nRuns the current quicksave through the validation software to determine if the curernt quicksave is valid or not\n");
+		printf("check\nRuns the current quicksave through the validation software to determine if the current quicksave is valid or not\n");
 	} else if (strcmp("modify", command) == 0) {
 		printf("modify <lines/score> <new_amount>\nModifies the current quicksave's lines or score to the new_amount\n");
 	} else if (strcmp("rank", command) == 0) {
@@ -457,11 +462,6 @@ void runHelp(char* command) {
 
 void runVisualize(TetrisGameState* game) {
 	printf("+-----Game board-----+\n");
-// 	int i = 0;
-// 	while (i < BLOCKS_WIDE * BLOCKS_TALL) {
-// 		printf("|%.*s|\n", BLOCKS_WIDE, (game->board)+i);
-// 		i += BLOCKS_WIDE;
-// 	}
 	for (int i = 0; i < BLOCKS_WIDE * BLOCKS_TALL; i++) {
 		if (i == 0) {
 			printf("|");
@@ -473,9 +473,26 @@ void runVisualize(TetrisGameState* game) {
 			printf("|\n");
 		}
 	}
-	printf("+--------------------+\n+--Next--+\n");
 	int piece_array_width = 4;
 	int piece_array_height = 4;
+
+	printf("+--------------------+\n\n+Current:+\n");
+
+	for (int i = 0; i < piece_array_width * piece_array_height; i++) {
+		if (i == 0) {
+			printf("|");
+		} else if (i % piece_array_width == 0 && i != 0) {
+			printf("|\n|");
+		}
+		printf("%c%c", *((tetris_pieces[game->current_piece])+i), *((tetris_pieces[game->current_piece])+i));
+		if (i == (piece_array_width * piece_array_height) - 1) {
+			printf("|\n");
+		}
+	}
+	printf("+--------+\n\n");
+	
+
+	printf("+--Next--+\n");
 	for (int i = 0; i < piece_array_width * piece_array_height; i++) {
 		if (i == 0) {
 			printf("|");
