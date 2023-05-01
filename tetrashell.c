@@ -144,7 +144,9 @@ int main(int argc, char **argv) {
 			} else if (strcmp("visualize", line_tokenized[0]) == 0) {
 				runVisualize(game);
 			} else {
-				printf("Command not recognized, try:\nrecover\ncheck\nrank\nmodify\ninfo\nswitch\nhelp\nvisualize\nexit\n");
+				printf("Command not recognized, supported commands inlcude:" 
+						"\nrecover\ncheck\nrank\nmodify\ninfo\nswitch\nhelp\nvisualize\n"
+						"exit\nUse help <command> for more info\n");
 			}
 		}
 		// Need to abbreviate pathname, maybe use tokenizing? Some string 
@@ -345,7 +347,7 @@ void runRank(char **line_tokenized, char *pathname, int numArgs, char *uName) {
 			int amt_to_print = arg < num_lines ? arg : num_lines;
 			for (int d = 0; d < amt_to_print; d++) {
 				if (d == my_save_i) {
-					printf("\e[1m>>> %i %s <<<\e[m\n", d + 1, leaderboard[d]);
+					printf("\033[1m>>> %i %s <<<\033[m\n", d + 1, leaderboard[d]);
 				} else {
 					printf("%i %s\n", d + 1, leaderboard[d]);
 				}
@@ -355,7 +357,7 @@ void runRank(char **line_tokenized, char *pathname, int numArgs, char *uName) {
 			int end = my_save_i + 5 <= num_lines ? my_save_i + 5 : num_lines;
 			for (int d = my_save_i - 5 < 0 ? 0 : my_save_i - 5; d <= end; d++) {
 				if (d == my_save_i) {
-					printf("\e[1m>>> %i %s <<<\e[m\n", d + 1, leaderboard[d]);
+					printf("\033[1m>>> %i %s <<<\033[m\n", d + 1, leaderboard[d]);
 				} else {
 					printf("%i %s\n", d + 1, leaderboard[d]);
 				}
