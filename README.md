@@ -15,7 +15,7 @@ destroy others in the mighty game of tetris.
 On bootup you will be prompted to enter a path to a valid Tetris Quicksave file, this will be the file that will be editied in tetrashell.
 
 Shell prompt:
-`username@tetrashell[save_path][save_score/save_lines]>` (7pts)
+`username@tetrashell[path...][save_score/save_lines]>` (7pts)
 
 The following commands are supported in the tetrashell:
 
